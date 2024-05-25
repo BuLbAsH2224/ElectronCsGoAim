@@ -1,0 +1,109 @@
+<style>
+    h1{
+     color: red;
+     font-size: 20px;
+    }
+    div{
+        border: 1px solid red;
+        display: inline-block;
+    }
+    h3{
+      font-size: 10px;
+      position: absolute;
+      color: black;
+    }
+</style>
+<body>
+  <h3>12</h3>
+    <img style="width: 1176;height: 664;" src="" alt="">
+    <script>
+let {mouse, screen, Point, straightTo, getActiveWindow, Button} = require("@nut-tree/nut-js")
+const tf = require("@tensorflow/tfjs")
+const cocoSsd = require('@tensorflow-models/coco-ssd');
+
+let scren= require("window-screenshot")
+
+let h3 = document.querySelector("h3");
+let fps = 0;
+let model = null
+mouse.config.mouseSpeed = 100000;
+
+let imageDOM = document.querySelector("img");
+h3.innerText = 1;
+async function loadModel(){model = await cocoSsd.load();}
+async function showFps(){
+   h3.innerText = fps;
+   fps = 0;
+}
+async function draw(predictions){
+let text = document.querySelectorAll("h1");
+         let shape = document.querySelectorAll("div");
+         if(text.length != 0){
+            for(let i = 0; i < text.length;i++ ){
+         text[i].remove()
+            }
+         }
+         if(shape.length != 0){
+            for(let i = 0; i < shape.length;i++ ){
+                shape[i].remove()
+                   }
+            }
+      
+         for (let item of predictions) {
+            let text = document.createElement("h1");
+           text.innerText = `${item.class} ${Math.trunc(item.score * 100)}%`
+           let shape = document.createElement("div");
+           shape.style.position = `absolute`
+          
+            let cords = item.bbox;
+            shape.style.left = `${cords[0]}px`
+            shape.style.top = `${cords[1]}px`
+            shape.style.width = `${cords[2]}px`
+            shape.style.height = `${cords[3]}px`
+            document.body.append(shape)
+            shape.append(text)
+         }   
+      }
+
+async function Aim(predictions,windowSize){    
+  let persons = predictions.filter(item => item.class === "person");
+  draw(persons);
+  let center = await mouse.getPosition()
+  
+  let person = persons.reduce((closest, item) => {
+    let distance = Math.abs((windowSize.left + item.bbox[0] + item.bbox[2] / 2) - center.x);
+    return distance < closest.distance ? {distance, item} : closest;
+}, {distance: Infinity, item: null}).item;
+
+          if(person != undefined){
+            let Target = new Point(person.bbox[0] + (person.bbox[2] / 2) + windowSize.left,person.bbox[1]  + windowSize.top)
+           await mouse.move(straightTo(Target))
+            await mouse.click(Button.LEFT);
+            await mouse.click(Button.LEFT);
+          }
+          fps++;
+          setTimeout(() => {screenshot()},1)
+        
+           
+}
+
+async function screenshot() {
+  let activeWindow = await getActiveWindow();
+  let region = await activeWindow.region;
+  scren(0, 
+    function (err, res) {
+        if(err) throw err;
+      imageDOM.src = 'data:image/png;base64,' + Buffer.from(res).toString('base64');
+      setTimeout(() => {model.detect(imageDOM).then(pr=>{Aim(pr,region)})},1)
+    });
+ 
+  
+
+}
+loadModel().then(() => {screenshot()})
+setInterval(showFps,1000)
+
+
+    </script>
+</body>
+
