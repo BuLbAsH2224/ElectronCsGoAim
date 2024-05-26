@@ -6,6 +6,16 @@
     div{
         border: 1px solid red;
         display: inline-block;
+        position:absolute;
+    }
+    h2{
+      background-color: yellow;
+      left: 0px;
+      top: 0px;
+       width: 4px;
+       height: 4px;
+       position: absolute;
+        display: inline-block;
     }
     h3{
       font-size: 10px;
@@ -14,7 +24,8 @@
     }
 </style>
 <body>
-  <h3>12</h3>
+  <h2></h2>
+  <h3></h3>
     <img style="width: 1176;height: 664;" src="" alt="">
     <script>
 let {mouse, screen, Point, straightTo, getActiveWindow, Button} = require("@nut-tree/nut-js")
@@ -26,7 +37,7 @@ let scren= require("window-screenshot")
 let h3 = document.querySelector("h3");
 let fps = 0;
 let model = null
-mouse.config.mouseSpeed = 100000;
+mouse.config.mouseSpeed = 1000;
 
 let imageDOM = document.querySelector("img");
 h3.innerText = 1;
@@ -35,6 +46,13 @@ async function showFps(){
    h3.innerText = fps;
    fps = 0;
 }
+
+async function drawTarget(person){
+  let point = document.querySelector("h2");
+  point.style.left = person.bbox[0] + (person.bbox[2] / 2);
+  point.style.top = person.bbox[1];
+}
+
 async function draw(predictions){
 let text = document.querySelectorAll("h1");
          let shape = document.querySelectorAll("div");
@@ -71,15 +89,18 @@ async function Aim(predictions,windowSize){
   let center = await mouse.getPosition()
   
   let person = persons.reduce((closest, item) => {
-    let distance = Math.abs((windowSize.left + item.bbox[0] + item.bbox[2] / 2) - center.x);
+    let distance = Math.abs((windowSize.left + item.bbox[0] + (item.bbox[2] / 2)) - center.x);
     return distance < closest.distance ? {distance, item} : closest;
 }, {distance: Infinity, item: null}).item;
 
           if(person != undefined){
-            let Target = new Point(person.bbox[0] + (person.bbox[2] / 2) + windowSize.left,person.bbox[1]  + windowSize.top)
+          
+            let Target = new Point(person.bbox[0] + (person.bbox[2] / 2) + windowSize.left ,person.bbox[1] + windowSize.top + 50)
+            h3.innerText = Target;
+            drawTarget(person);
            await mouse.move(straightTo(Target))
             await mouse.click(Button.LEFT);
-            await mouse.click(Button.LEFT);
+            
           }
           fps++;
           setTimeout(() => {screenshot()},1)
@@ -106,4 +127,5 @@ setInterval(showFps,1000)
 
     </script>
 </body>
+
 
